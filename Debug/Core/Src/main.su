@@ -1,0 +1,15 @@
+../Core/Src/main.c:104:6:WaitTimerTick	4	static
+../Core/Src/main.c:110:6:ADC1_Timer_ReadStart	8	static
+../Core/Src/main.c:120:6:ADC_ChipSelect	24	static
+../Core/Src/main.c:133:6:ADC_LevelSet	24	static
+../Core/Src/main.c:166:6:ADC_On	24	static
+../Core/Src/main.c:180:6:ADC_DataRead	24	static
+../Core/Src/main.c:210:6:ADC_Off	24	static
+../Core/Src/main.c:230:5:main	16	static
+../Core/Src/main.c:315:6:SystemClock_Config	88	static
+../Core/Src/main.c:361:13:MX_TIM2_Init	32	static
+../Core/Src/main.c:406:13:MX_USART3_UART_Init	8	static
+../Core/Src/main.c:439:13:MX_GPIO_Init	56	static
+../Core/Src/main.c:582:1:__io_putchar	16	static
+../Core/Src/main.c:591:6:HAL_TIM_PeriodElapsedCallback	16	static
+../Core/Src/main.c:627:6:Error_Handler	4	static,ignoring_inline_asm

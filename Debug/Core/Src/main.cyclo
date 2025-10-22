@@ -1,0 +1,15 @@
+../Core/Src/main.c:104:6:WaitTimerTick	2
+../Core/Src/main.c:110:6:ADC1_Timer_ReadStart	1
+../Core/Src/main.c:120:6:ADC_ChipSelect	1
+../Core/Src/main.c:133:6:ADC_LevelSet	6
+../Core/Src/main.c:166:6:ADC_On	2
+../Core/Src/main.c:180:6:ADC_DataRead	3
+../Core/Src/main.c:210:6:ADC_Off	2
+../Core/Src/main.c:230:5:main	2
+../Core/Src/main.c:315:6:SystemClock_Config	3
+../Core/Src/main.c:361:13:MX_TIM2_Init	4
+../Core/Src/main.c:406:13:MX_USART3_UART_Init	2
+../Core/Src/main.c:439:13:MX_GPIO_Init	1
+../Core/Src/main.c:582:1:__io_putchar	1
+../Core/Src/main.c:591:6:HAL_TIM_PeriodElapsedCallback	2
+../Core/Src/main.c:627:6:Error_Handler	1
