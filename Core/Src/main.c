@@ -219,25 +219,17 @@ int main(void)
 
   HAL_CAN_Start(&hcan1);
 
-  // Настройка Rx заголовка
-  CAN_RxHeaderTypeDef RxHeader;
-  uint8_t RxData[8];
 
-  // Настройка Tx заголовка
-  CAN_TxHeaderTypeDef TxHeader;
-  uint8_t TxData[8];
-  uint32_t TxMailbox;
+     CAN_TxHeaderTypeDef TxHeader;
+     CAN_RxHeaderTypeDef RxHeader;
+     uint8_t TxData[8] = {1,2,3,4,5,6,7,8};
+     uint8_t RxData[8];
+     uint32_t TxMailbox;
 
-  TxHeader.DLC = 8;
-  TxHeader.IDE = CAN_ID_STD;
-  TxHeader.RTR = CAN_RTR_DATA;
-  TxHeader.StdId = 0x101;
-  TxHeader.TransmitGlobalTime = DISABLE;
-
-  // Заполняем возрастающими байтами
-  for (uint8_t i = 0; i < 8; i++)
-    TxData[i] = i;
-
+     TxHeader.DLC = 8;
+     TxHeader.IDE = CAN_ID_STD;
+     TxHeader.RTR = CAN_RTR_DATA;
+     TxHeader.StdId = 0x100;
   // Отправляем кадр
 
 
@@ -247,18 +239,21 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) != HAL_OK)
-	    {
-	      Error_Handler(); // Ошибка передачи
-	    }
-	  HAL_Delay(10);
+
+	  // Отправляем кадр
+	  if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) == HAL_OK)
+	  {
+		  HAL_GPIO_TogglePin(GPIOB, LED1_Pin);
+	  }
+
+	  HAL_Delay(100);
+
+	  // Проверяем приём
 	  if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK)
-		{
-		  if (RxHeader.StdId == 0x100)   // <-- ждем именно 0x100
-		  {
-			HAL_GPIO_TogglePin(GPIOB, LED1_Pin);
-		  }
-		}
+	  {
+		  HAL_GPIO_TogglePin(GPIOB, LED2_Pin);
+	  }
+
 	  /*
 	  for (uint8_t adc_index = 0; adc_index <= 1; adc_index++)
 	  {
@@ -345,11 +340,11 @@ static void MX_CAN1_Init(void)
 
   /* USER CODE END CAN1_Init 1 */
   hcan1.Instance = CAN1;
-  hcan1.Init.Prescaler = 16;
+  hcan1.Init.Prescaler = 4;
   hcan1.Init.Mode = CAN_MODE_NORMAL;
   hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan1.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_15TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
   hcan1.Init.TimeTriggeredMode = DISABLE;
   hcan1.Init.AutoBusOff = DISABLE;
   hcan1.Init.AutoWakeUp = DISABLE;
@@ -395,11 +390,11 @@ static void MX_CAN2_Init(void)
 
   /* USER CODE END CAN2_Init 1 */
   hcan2.Instance = CAN2;
-  hcan2.Init.Prescaler = 16;
+  hcan2.Init.Prescaler = 4;
   hcan2.Init.Mode = CAN_MODE_NORMAL;
   hcan2.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan2.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan2.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan2.Init.TimeSeg1 = CAN_BS1_15TQ;
+  hcan2.Init.TimeSeg2 = CAN_BS2_2TQ;
   hcan2.Init.TimeTriggeredMode = DISABLE;
   hcan2.Init.AutoBusOff = DISABLE;
   hcan2.Init.AutoWakeUp = DISABLE;
