@@ -50,9 +50,14 @@ UART_HandleTypeDef huart1;
 /* USER CODE BEGIN PV */
 uint8_t timer_tick_flag = 0;
 
+uint16_t value12;
 uint16_t adc_value = 0;
 uint16_t V = 0;
 uint16_t adc12 = 0;
+uint8_t bit_index = 0;
+uint8_t transfer_done = 0;
+uint8_t timer_flag = 0;
+uint8_t sck_state = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -67,7 +72,6 @@ static void MX_TIM2_Init(void);
 
 #define SCK_HIGH()    HAL_GPIO_WritePin(GPIOA, SCK_Pin, GPIO_PIN_SET)
 #define SCK_LOW()     HAL_GPIO_WritePin(GPIOA, SCK_Pin, GPIO_PIN_RESET)
-#define MISO_READ()   HAL_GPIO_ReadPin(GPIOA, MISO_Pin)
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -85,16 +89,15 @@ void ADC_ChipSelect(uint8_t adc_index)
 	uint8_t bit2 = (adc_index >> 2) & 0x01;
 	uint8_t bit3 = (adc_index >> 3) & 0x01;
 
-	HAL_GPIO_WritePin(GPIOC, A0_Pin, bit0 ? GPIO_PIN_SET : GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(GPIOC, A1_Pin, bit1 ? GPIO_PIN_SET : GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(GPIOC, A2_Pin, bit2 ? GPIO_PIN_SET : GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(GPIOC, A3_Pin, bit3 ? GPIO_PIN_SET : GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOA, A0_Pin, bit0 ? GPIO_PIN_SET : GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOA, A1_Pin, bit1 ? GPIO_PIN_SET : GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOA, A2_Pin, bit2 ? GPIO_PIN_SET : GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOA, A3_Pin, bit3 ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
 void ADC_LevelSet(uint8_t adc_index, GPIO_PinState adc_level)
 {
-	uint8_t board_index;
-	board_index = adc_index / 14;
+	uint8_t board_index = adc_index / 14;
 
 	switch (board_index)
 	{
@@ -124,6 +127,27 @@ void ADC_LevelSet(uint8_t adc_index, GPIO_PinState adc_level)
 
 }
 
+uint8_t MISO_READ(uint8_t adc_index)
+{
+    uint8_t board_index = adc_index / 14;
+
+    switch (board_index)
+    {
+        case 0:
+            return HAL_GPIO_ReadPin(GPIOB, MISO1_Pin);
+        case 1:
+            return HAL_GPIO_ReadPin(GPIOC, MISO2_Pin);
+        case 2:
+            return HAL_GPIO_ReadPin(GPIOC, MISO3_Pin);
+        case 3:
+            return HAL_GPIO_ReadPin(GPIOC, MISO4_Pin);
+        case 4:
+            return HAL_GPIO_ReadPin(GPIOA, MISO5_Pin);
+        default:
+            return 0;
+    }
+}
+
 void ADC_On(uint8_t adc_index)
 {
 	HAL_TIM_Base_Start_IT(&htim2); // запускаем таймер
@@ -150,7 +174,7 @@ void ADC_DataRead(uint8_t adc_index)
 	    SCK_HIGH();
 	    WaitTimerTick();
 	    adc_value <<= 1;
-	    if(MISO_READ()) adc_value |= 1;
+	    if(MISO_READ(adc_index)) adc_value |= 1;
 
 	    // спад
 	    SCK_LOW();
@@ -163,7 +187,8 @@ void ADC_DataRead(uint8_t adc_index)
 	adc12 = adc_value & 0x0FFF; // 12 бит ADC
 	V = (uint16_t)(adc12 * 1000 * 3.3f * 6.6f / 4095.0f);
 	printf("ADC = %u, V = %u mV\n\r", adc12, V);
-
+	sck_state = 0;
+	bit_index = 0;
 	return;
 }
 
@@ -240,22 +265,7 @@ int main(void)
   while (1)
   {
 
-	  // Отправляем кадр
-	  if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) == HAL_OK)
-	  {
-		  HAL_GPIO_TogglePin(GPIOB, LED1_Pin);
-	  }
-
-	  HAL_Delay(100);
-
-	  // Проверяем приём
-	  if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK)
-	  {
-		  HAL_GPIO_TogglePin(GPIOB, LED2_Pin);
-	  }
-
-	  /*
-	  for (uint8_t adc_index = 0; adc_index <= 1; adc_index++)
+	  for (uint8_t adc_index = 42; adc_index <= 55; adc_index++)
 	  {
 			bit_index = 0;
 			adc_value = 0;
@@ -265,8 +275,11 @@ int main(void)
 			ADC_DataRead(adc_index);
 			HAL_Delay(1);
 			ADC_Off(adc_index);
+			HAL_Delay(1);
 	  }
+	  HAL_GPIO_TogglePin(GPIOB, LED1_Pin);
 	  HAL_Delay(100);
+	  HAL_GPIO_TogglePin(GPIOB, LED2_Pin);
 	  printf("\033[2J");  // очистить весь экран
 	  printf("\033[H");   // курсор в начало
 
@@ -445,7 +458,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 3599;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 1;
+  htim2.Init.Period = 10;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -553,11 +566,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : MISO_Pin */
-  GPIO_InitStruct.Pin = MISO_Pin;
+  /*Configure GPIO pin : MISO5_Pin */
+  GPIO_InitStruct.Pin = MISO5_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(MISO_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(MISO5_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : MISO4_Pin MISO2_Pin MISO3_Pin */
+  GPIO_InitStruct.Pin = MISO4_Pin|MISO2_Pin|MISO3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LED1_Pin LED2_Pin Bus3_Pin Bus8_Pin
                            Bus4_Pin */
@@ -567,6 +586,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : MISO1_Pin */
+  GPIO_InitStruct.Pin = MISO1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(MISO1_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : Bus7_Pin */
   GPIO_InitStruct.Pin = Bus7_Pin;
